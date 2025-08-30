@@ -2,51 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Nova Chat</title>
+  <title>Nova Dialog</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div id="app" class="wrap hidden">
-    <div class="board">
-      <!-- Tab Navigation -->
-      <nav class="tab-nav">
-        <button class="tab-btn active" id="dialogTab">Dialog</button>
-        <button class="tab-btn" id="shopTab">Shop</button>
-      </nav>
-
+    <div class="panel elevated">
       <!-- Close Button -->
       <button class="close-btn" id="btnClose" aria-label="Close">×</button>
 
-      <!-- Dialog Content -->
-      <div class="dialog-content" id="dialogContent">
-        <!-- NPC Header -->
-        <header class="npc-header">
+      <!-- Header Section -->
+      <header class="header">
+        <div class="npc-profile">
           <div class="npc-avatar" id="npcAvatar">NP</div>
           <div class="npc-info">
             <div class="npc-name" id="npcName">NPC Name</div>
             <div class="npc-mission" id="missionTag">mission</div>
           </div>
-          <div class="rep-display">
-            <div class="rep-label">REP</div>
-            <div class="rep-value" id="myRep">0</div>
+        </div>
+        
+        <div class="rep-badge">
+          <div class="rep-label">REP</div>
+          <div class="rep-value" id="myRep">0</div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+          <button class="tab-btn active" id="dialogTab">Dialog</button>
+          <button class="tab-btn" id="shopTab">Shop</button>
+        </nav>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content">
+        <!-- Dialog Content -->
+        <div class="dialog-content" id="dialogContent">
+          <!-- Chat Area -->
+          <main class="chat" id="chat"></main>
+
+          <!-- Choices -->
+          <footer class="choices" id="choicesContainer">
+            <div class="hint">Press <b>1-9</b> to choose • <b>Tab</b> to switch • <b>Esc</b> to close</div>
+          </footer>
+        </div>
+
+        <!-- Shop Content -->
+        <div class="shop-content" id="shopContent">
+          <div class="shop-header">
+            <div class="shop-title">Marketplace</div>
+            <div class="shop-subtitle">Premium items & upgrades</div>
           </div>
-        </header>
-
-        <!-- Chat Area -->
-        <main class="chat" id="chat"></main>
-
-        <!-- Choices -->
-        <footer class="choices">
-          <div class="col" id="leftCol"></div>
-          <div class="col" id="rightCol"></div>
-          <div class="hint">Press <b>1-9</b> to choose</div>
-        </footer>
-      </div>
-
-      <!-- Shop Content -->
-      <div class="shop-content" id="shopContent">
-        <div class="shop-list" id="shopList"></div>
+          <div class="shop-grid" id="shopGrid"></div>
+        </div>
       </div>
     </div>
   </div>

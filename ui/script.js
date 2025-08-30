@@ -7,22 +7,28 @@ const missionTag = document.getElementById('missionTag');
 const npcAvatar = document.getElementById('npcAvatar');
 const myRepEl = document.getElementById('myRep');
 
-const leftCol = document.getElementById('leftCol');
-const rightCol = document.getElementById('rightCol');
-
+const choicesContainer = document.getElementById('choicesContainer');
 const btnClose = document.getElementById('btnClose');
 
 const dialogTab = document.getElementById('dialogTab');
 const shopTab = document.getElementById('shopTab');
 const dialogContent = document.getElementById('dialogContent');
 const shopContent = document.getElementById('shopContent');
-const shopList = document.getElementById('shopList');
+const shopGrid = document.getElementById('shopGrid');
 
 const RES = (typeof GetParentResourceName === 'function') ? GetParentResourceName() : 'zat-dialog';
 
 // State
-let state = { session: null, npcIndex: null, myRep: 0, haveShop: false };
-let dialogCache = { buttons: [], npcIndex: null };
+let state = { 
+  session: null, 
+  npcIndex: null, 
+  myRep: 0, 
+  haveShop: false 
+};
+let dialogCache = { 
+  buttons: [], 
+  npcIndex: null 
+};
 let currentTab = 'dialog';
 
 // Utils
@@ -32,47 +38,59 @@ function clear(el) {
 
 function initials(name) {
   if (!name) return 'NP';
-  const p = name.trim().split(/\s+/);
-  return (p[0]?.[0] || 'N').toUpperCase() + (p[1]?.[0] || 'P').toUpperCase();
+  const parts = name.trim().split(/\s+/);
+  return (parts[0]?.[0] || 'N').toUpperCase() + (parts[1]?.[0] || 'P').toUpperCase();
 }
 
 function addMsg(text, who) {
-  const m = document.createElement('div');
-  m.className = `msg ${who}`;
-  m.textContent = text || '';
-  chat.appendChild(m);
-  chat.scrollTop = chat.scrollHeight;
+  const msg = document.createElement('div');
+  msg.className = `msg ${who}`;
+  msg.textContent = text || '';
+  chat.appendChild(msg);
+  
+  // Smooth scroll to bottom
+  setTimeout(() => {
+    chat.scrollTo({
+      top: chat.scrollHeight,
+      behavior: 'smooth'
+    });
+  }, 100);
 }
 
 function renderChoices(buttons) {
   dialogCache.buttons = Array.isArray(buttons) ? buttons : [];
-  clear(leftCol);
-  clear(rightCol);
   
-  dialogCache.buttons.forEach((b, i) => {
-    const c = document.createElement('div');
-    c.className = 'choice';
-    c.tabIndex = 0;
+  // Clear existing choices (keep hint)
+  const existingChoices = choicesContainer.querySelectorAll('.choice');
+  existingChoices.forEach(choice => choice.remove());
+  
+  dialogCache.buttons.forEach((button, index) => {
+    const choice = document.createElement('div');
+    choice.className = 'choice';
+    choice.tabIndex = 0;
     
     const num = document.createElement('div');
     num.className = 'num';
-    num.textContent = String(i + 1);
+    num.textContent = String(index + 1);
     
     const label = document.createElement('div');
     label.className = 'label';
-    label.textContent = b.text || 'action';
+    label.textContent = button.text || 'Action';
     
-    c.appendChild(num);
-    c.appendChild(label);
-    c.addEventListener('click', () => choose(i + 1));
-    c.addEventListener('keydown', (e) => {
+    choice.appendChild(num);
+    choice.appendChild(label);
+    
+    choice.addEventListener('click', () => choose(index + 1));
+    choice.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        choose(i + 1);
+        choose(index + 1);
       }
     });
     
-    (i % 2 === 0 ? leftCol : rightCol).appendChild(c);
+    // Insert before hint
+    const hint = choicesContainer.querySelector('.hint');
+    choicesContainer.insertBefore(choice, hint);
   });
 }
 
@@ -105,76 +123,103 @@ function switchTab(tab) {
   shopTab.classList.toggle('active', tab === 'shop');
   
   // Update content visibility
-  dialogContent.style.display = tab === 'dialog' ? 'grid' : 'none';
+  dialogContent.style.display = tab === 'dialog' ? 'flex' : 'none';
   shopContent.classList.toggle('active', tab === 'shop');
 }
 
-// Shop
+// Shop Item Icons
+const itemIcons = {
+  weapon: '⚔️',
+  armor: '🛡️',
+  consumable: '🧪',
+  tool: '🔧',
+  vehicle: '🚗',
+  upgrade: '⭐',
+  default: '📦'
+};
+
+function getItemIcon(type) {
+  return itemIcons[type?.toLowerCase()] || itemIcons.default;
+}
+
+// Shop Rendering
 function renderShop(items, npcIndex) {
-  clear(shopList);
+  clear(shopGrid);
   
-  (items || []).forEach(it => {
-    const row = document.createElement('div');
-    row.className = 'item';
+  (items || []).forEach(item => {
+    const shopItem = document.createElement('div');
+    shopItem.className = 'shop-item';
     
-    const img = document.createElement('img');
-    img.src = it.image || '';
-    img.alt = it.name || 'Item';
+    // Item Header
+    const itemHeader = document.createElement('div');
+    itemHeader.className = 'item-header';
     
-    const meta = document.createElement('div');
-    meta.className = 'item-meta';
+    const itemIcon = document.createElement('div');
+    itemIcon.className = 'item-icon';
+    itemIcon.textContent = getItemIcon(item.type);
     
-    const name = document.createElement('div');
-    name.className = 'name';
-    name.textContent = it.label || it.name;
+    const itemInfo = document.createElement('div');
+    itemInfo.className = 'item-info';
     
-    const type = document.createElement('div');
-    type.className = 'type';
-    type.textContent = it.type || '';
+    const itemName = document.createElement('div');
+    itemName.className = 'item-name';
+    itemName.textContent = item.label || item.name || 'Unknown Item';
     
-    meta.appendChild(name);
-    meta.appendChild(type);
+    const itemType = document.createElement('div');
+    itemType.className = 'item-type';
+    itemType.textContent = item.type || 'Item';
     
-    const actions = document.createElement('div');
-    actions.className = 'item-actions';
+    itemInfo.appendChild(itemName);
+    itemInfo.appendChild(itemType);
     
-    const price = document.createElement('div');
-    price.className = 'price';
-    price.textContent = `$${it.price ?? 0}`;
+    itemHeader.appendChild(itemIcon);
+    itemHeader.appendChild(itemInfo);
     
-    const buy = document.createElement('button');
-    buy.className = 'buy';
-    buy.textContent = 'Buy';
+    // Item Footer
+    const itemFooter = document.createElement('div');
+    itemFooter.className = 'item-footer';
     
-    const needRep = Number(it.rep ?? 0);
+    const itemPrice = document.createElement('div');
+    itemPrice.className = 'item-price';
+    itemPrice.textContent = `$${item.price ?? 0}`;
+    
+    const buyBtn = document.createElement('button');
+    buyBtn.className = 'buy-btn';
+    buyBtn.textContent = 'Purchase';
+    
+    const needRep = Number(item.rep ?? 0);
     if (state.myRep < needRep) {
-      buy.setAttribute('disabled', 'true');
-      buy.title = `Requires REP ${needRep}`;
+      buyBtn.setAttribute('disabled', 'true');
+      buyBtn.title = `Requires REP ${needRep}`;
+      buyBtn.textContent = `REP ${needRep}`;
     }
     
-    buy.addEventListener('click', () => {
-      fetch(`https://${RES}/dialog:buy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          npcIndex: npcIndex ?? state.npcIndex, 
-          itemName: it.name 
-        })
-      }).catch(console.error);
+    buyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!buyBtn.disabled) {
+        fetch(`https://${RES}/dialog:buy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            npcIndex: npcIndex ?? state.npcIndex, 
+            itemName: item.name 
+          })
+        }).catch(console.error);
+      }
     });
     
-    actions.appendChild(price);
-    actions.appendChild(buy);
+    itemFooter.appendChild(itemPrice);
+    itemFooter.appendChild(buyBtn);
     
-    row.appendChild(img);
-    row.appendChild(meta);
-    row.appendChild(actions);
-    shopList.appendChild(row);
+    shopItem.appendChild(itemHeader);
+    shopItem.appendChild(itemFooter);
+    shopGrid.appendChild(shopItem);
   });
 }
 
 // Event Listeners
 dialogTab.addEventListener('click', () => switchTab('dialog'));
+
 shopTab.addEventListener('click', () => {
   if (!state.haveShop) {
     fetch(`https://${RES}/dialog:openShopTab`, {
@@ -197,40 +242,51 @@ btnClose.addEventListener('click', () => {
 
 // Keyboard Navigation
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    btnClose.click();
-  } else if (/^[1-9]$/.test(e.key) && currentTab === 'dialog') {
-    choose(Number(e.key));
-  } else if (e.key === 'Tab') {
-    e.preventDefault();
-    switchTab(currentTab === 'dialog' ? 'shop' : 'dialog');
+  if (!app.classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      btnClose.click();
+    } else if (/^[1-9]$/.test(e.key) && currentTab === 'dialog') {
+      choose(Number(e.key));
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (state.haveShop) {
+        switchTab(currentTab === 'dialog' ? 'shop' : 'dialog');
+      }
+    }
   }
 });
 
 // NUI Message Handler
 window.addEventListener('message', (e) => {
-  const d = e.data || {};
+  const data = e.data || {};
 
-  if (d.action === 'open') {
-    state.session = d.session || null;
-    state.npcIndex = d.npcIndex;
-    state.myRep = Number(d.myRep ?? 0);
-    state.haveShop = Array.isArray(d.items) && d.items.length > 0;
+  if (data.action === 'open') {
+    state.session = data.session || null;
+    state.npcIndex = data.npcIndex;
+    state.myRep = Number(data.myRep ?? 0);
+    state.haveShop = Array.isArray(data.items) && data.items.length > 0;
 
+    // Show panel with animation
     app.classList.remove('hidden');
 
-    npcName.textContent = d.name || 'NPC';
-    missionTag.textContent = d.mission || '';
-    npcAvatar.textContent = initials(d.name || 'NPC');
+    // Update NPC info
+    npcName.textContent = data.name || 'NPC';
+    missionTag.textContent = data.mission || 'Mission';
+    npcAvatar.textContent = initials(data.name || 'NPC');
     myRepEl.textContent = String(state.myRep);
 
+    // Clear and setup chat
     clear(chat);
-    if (d.text) addMsg(d.text, 'npc');
-    dialogCache.npcIndex = d.npcIndex;
-
-    renderChoices(d.buttons || []);
+    if (data.text) {
+      addMsg(data.text, 'npc');
+    }
+    
+    dialogCache.npcIndex = data.npcIndex;
+    renderChoices(data.buttons || []);
+    
+    // Setup shop if available
     if (state.haveShop) {
-      renderShop(d.items || [], d.npcIndex);
+      renderShop(data.items || [], data.npcIndex);
       shopTab.style.display = 'block';
     } else {
       shopTab.style.display = 'none';
@@ -239,35 +295,52 @@ window.addEventListener('message', (e) => {
     switchTab('dialog');
   }
 
-  else if (d.action === 'setButtons') {
-    if (d.session && d.session !== state.session) return;
-    const idx = d.npcIndex ?? dialogCache.npcIndex ?? state.npcIndex;
-    dialogCache.npcIndex = idx;
-    renderChoices(d.buttons || []);
+  else if (data.action === 'setButtons') {
+    if (data.session && data.session !== state.session) return;
+    const npcIndex = data.npcIndex ?? dialogCache.npcIndex ?? state.npcIndex;
+    dialogCache.npcIndex = npcIndex;
+    renderChoices(data.buttons || []);
   }
 
-  else if (d.action === 'answer') {
-    if (d.session && d.session !== state.session) return;
-    if (d.text) addMsg(d.text, 'npc');
+  else if (data.action === 'answer') {
+    if (data.session && data.session !== state.session) return;
+    if (data.text) {
+      addMsg(data.text, 'npc');
+    }
   }
 
-  else if (d.action === 'openShop') {
-    if (d.session && d.session !== state.session) return;
-    renderShop(d.items || [], d.npcIndex ?? state.npcIndex);
+  else if (data.action === 'openShop') {
+    if (data.session && data.session !== state.session) return;
+    renderShop(data.items || [], data.npcIndex ?? state.npcIndex);
     state.haveShop = true;
     shopTab.style.display = 'block';
     switchTab('shop');
   }
 
-  else if (d.action === 'forceClose') {
-    if (d.session && d.session !== state.session) return;
+  else if (data.action === 'forceClose') {
+    if (data.session && data.session !== state.session) return;
+    
+    // Hide panel with animation
     app.classList.add('hidden');
+    
+    // Reset state
     state = { session: null, npcIndex: null, myRep: 0, haveShop: false };
     dialogCache = { buttons: [], npcIndex: null };
+    
+    // Clear content
     clear(chat);
-    clear(leftCol);
-    clear(rightCol);
-    clear(shopList);
+    clear(shopGrid);
+    
+    // Clear choices but keep hint
+    const existingChoices = choicesContainer.querySelectorAll('.choice');
+    existingChoices.forEach(choice => choice.remove());
+    
     switchTab('dialog');
   }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  // Ensure proper initial state
+  switchTab('dialog');
 });
